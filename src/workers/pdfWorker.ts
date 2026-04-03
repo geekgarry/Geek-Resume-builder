@@ -1,7 +1,7 @@
 import jsPDF from "jspdf";
 
 self.onmessage = async (e) => {
-  const { imgData, pdfWidth, pdfHeight, marginY, isPaginated, fileName } =
+  const { imgData, pdfWidth, pdfHeight, marginY, isPaginated, fileName, currentTemplate } =
     e.data;
 
   try {
@@ -330,9 +330,10 @@ self.onmessage = async (e) => {
       // 新增：复杂背景模板专用判断（现代简历/PPT 风格背景多）
       const isBgSafeRow = (y: number) => {
         const darkThreshold = 160;
-        const whiteThreshold = 215;
+        const whiteThreshold = 199;
         const minTextRun = 3;
-        const maxTextRun = Math.max(16, Math.floor(canvasWidth * 0.6));
+        const maxTextRun = Math.max(6, Math.floor(canvasWidth * 0.25));
+        // const maxTextRun = Math.max(6, Math.floor(canvasWidth * 0.6));
         const maxDisjointGap = 3;
 
         let linePixels = 0;
@@ -343,10 +344,12 @@ self.onmessage = async (e) => {
         let hasLongLine = false;
 
         for (let x = 0; x < canvasWidth; x++) {
+          // i 计算当前像素在 ImageData 中的索引位置，RGBA 四个通道占用四个连续的数组元素，因此乘以 4 来获取正确的索引。然后分别获取 R、G、B 和 A 通道的值。
           const i = (y * canvasWidth + x) * 4;
           const r = data[i];
           const g = data[i + 1];
           const b = data[i + 2];
+          // alpha 通道值，判断像素是否透明，如果 a < 10 则认为是透明像素，直接跳过，不参与文字统计，这样可以避免将透明区域误判为文字，同时也能更准确地识别出真正的文字像素。
           const a = data[i + 3];
 
           if (a < 10) {
@@ -358,11 +361,15 @@ self.onmessage = async (e) => {
 
           linePixels++;
 
+          // brightness 计算当前像素的亮度值，使用常见的加权公式（0.299 * R + 0.587 * G + 0.114 * B）来综合评估像素的明暗程度。
+          // 然后根据亮度值判断该像素是否可能是文字像素（暗色或浅色），从而更准确地识别出文字行，避免被复杂背景干扰。
           const brightness = 0.299 * r + 0.587 * g + 0.114 * b;
+          // isDarkText 判断当前像素是否为暗色文字像素，isWhiteText 判断是否为浅色文字像素。只要满足其中之一，就认为是文字像素，这样可以兼容不同设计风格的简历，同时增加了对浅色文字的支持，避免切断浅色文字行。
           const isDarkText = brightness < darkThreshold;
           const isWhiteText = brightness > whiteThreshold;
           const isTextPixel = isDarkText || isWhiteText;
 
+          // 当遇到底部会有一些装饰线时，可能会出现文字像素被分成两段的情况（例如一行文字被装饰线分成上下两部分），这时允许在一定像素范围内的断续（maxDisjointGap）仍然统计为同一文字线段，避免被装饰线干扰导致误判为安全行。
           if (isTextPixel) {
             textPixels++;
             if (lastTextX >= 0 && x - lastTextX <= maxDisjointGap) {
@@ -388,16 +395,20 @@ self.onmessage = async (e) => {
         if (textRuns >= 1) return false;
 
         const textRatio = textPixels / linePixels;
-        if (textRatio > 0.06 && !hasLongLine) return false;
-        if (textRatio < 0.025) return true;
+        if (textRatio > 0.05 && !hasLongLine) return false;
+        if (textRatio < 0.02) return true;
         if (hasLongLine) return true;
 
         return false;
       };
 
       const isSafeRowUsed = (y: number) => {
-        // 复杂背景优先，退回普通判断
-        return isBgSafeRow(y) && isSafeRow(y);
+        // 复杂背景优先，退回普通判断，适配更多现代简历/PPT 风格设计，同时保持对传统简历的兼容性
+        if(currentTemplate === "template2" || currentTemplate === "template4") {
+          return isBgSafeRow(y);
+        } else {
+          return isSafeRow(y);
+        }
       };
 
       let currentY = 0;
@@ -430,8 +441,16 @@ self.onmessage = async (e) => {
           safeY = canvasHeight;
         }
 
+        // 计算当前页的实际内容高度和上下填充，确保分页位置在安全行，并且上下空白区域使用纯背景色填充，避免切断文字行，同时保持背景的完整性和美观性。
         const sliceHeight = safeY - currentY;
         const paddingPx = Math.max(0, Math.round(marginY * scale));
+        // 注意：paddingPx 的计算需要基于实际的缩放比例（scale），确保在不同分辨率和设计风格下都能保持适当的空白区域，避免过度切割文字行，同时也能适应多样化的简历设计需求。
+        // 这里的 paddingPx 是根据 marginY（PDF 页面边距）和 scale（图像缩放比例）计算得出的
+        //底部在marginY的边距上又出现白色边距，可能是因为在某些设计中，底部的背景色较浅或者有渐变，导致 isSafeRow 判断为安全行，从而在分页时切断了背景的一部分。为了避免这种情况，我们可以在寻找安全行的同时，动态采样该行的背景色，并在分页时使用这个背景色来填充上下的空白区域，这样即使切断了部分背景，也能保持视觉上的连续性和美观性。
+        
+        const isLastPage = safeY >= canvasHeight;
+        const actualPaddingPx = isLastPage ? 0 : paddingPx; // 最后一页不需要底部填充
+
 
         // 动态找到该页的顶部和底部纯背景行
         let topBgRowY = -1;

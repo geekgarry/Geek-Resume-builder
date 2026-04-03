@@ -938,7 +938,7 @@ export function ResumePreview({ data, templateId, template }: PreviewProps) {
                   <div key={p.id} className="bg-white/5 p-3 rounded-lg border border-white/10 border-l-4 border-l-purple-500">
                     <div className="font-bold text-white mb-1">{p.name}</div>
                     <div className="text-xs text-purple-300 mb-1">{p.technologies}</div>
-                    <p className="text-xs text-gray-300 line-clamp-15">{p.description}</p>
+                    <p className="text-xs text-gray-300 h-auto">{p.description}</p>
                   </div>
                 ))}
               </div>
