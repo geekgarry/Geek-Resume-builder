@@ -8,3 +8,11 @@ createRoot(document.getElementById('root')!).render(
     <App />
   </StrictMode>,
 );
+
+// Hide loading animation after React app is rendered
+// setTimeout(() => {
+//   const loading = document.getElementById('loading');
+//   if (loading) {
+//     loading.style.display = 'none';
+//   }
+// }, 100); // Small delay to ensure rendering is complete

@@ -10,8 +10,19 @@
     <meta name="keywords" content="GeekPlus简历, AI简历制作, AI简历生成, 在线简历编辑器, PDF导出, 多模板简历" />
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <div id="loading" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #f8f9fa; display: flex; justify-content: center; align-items: center; z-index: 9999; flex-direction: column;">
+        <div style="border: 6px solid #e9ecef; border-top: 6px solid #007bff; border-radius: 50%; width: 50px; height: 50px; animation: spin 1s linear infinite; margin-bottom: 20px;"></div>
+        <div style="color: #6c757d; font-size: 16px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">正在加载...</div>
+      </div>
+    </div>
     <script type="module" src="/src/main.tsx"></script>
+    <style>
+      @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+      }
+    </style>
   </body>
 </html>
 
