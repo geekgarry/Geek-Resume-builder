@@ -1,7 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { ResumeData, ResumeTemplate } from '../types';
 import { aiService } from '../services/ai_optimize';
-import { Wand2, Plus, Trash2, Upload, X, GripVertical, Eye, EyeOff } from 'lucide-react';
+import { Wand2, Plus, Trash2, Upload, X, GripVertical, Eye, EyeOff, ArrowUp, ArrowDown } from 'lucide-react';
 
 interface EditorProps {
   data: ResumeData;
@@ -110,6 +110,22 @@ export function ResumeEditor({ data, onChange, template }: EditorProps) {
     }
     setDragProjItem(null);
     setDragProjOverItem(null);
+  };
+
+  const moveWorkItem = (index: number, direction: 'up' | 'down') => {
+    const newWork = [...data.work];
+    const targetIndex = direction === 'up' ? index - 1 : index + 1;
+    if (targetIndex < 0 || targetIndex >= newWork.length) return;
+    [newWork[index], newWork[targetIndex]] = [newWork[targetIndex], newWork[index]];
+    onChange({ ...data, work: newWork });
+  };
+
+  const moveProjectItem = (index: number, direction: 'up' | 'down') => {
+    const newProj = [...data.projects];
+    const targetIndex = direction === 'up' ? index - 1 : index + 1;
+    if (targetIndex < 0 || targetIndex >= newProj.length) return;
+    [newProj[index], newProj[targetIndex]] = [newProj[targetIndex], newProj[index]];
+    onChange({ ...data, projects: newProj });
   };
 
   return (
@@ -252,6 +268,7 @@ export function ResumeEditor({ data, onChange, template }: EditorProps) {
           <div 
             key={w.id} 
             draggable
+            onTouchStart={() => handleWorkDragStart(index)}
             onDragStart={() => handleWorkDragStart(index)}
             onDragEnter={() => handleWorkDragEnter(index)}
             onDragEnd={handleWorkDragEnd}
@@ -262,6 +279,20 @@ export function ResumeEditor({ data, onChange, template }: EditorProps) {
               <GripVertical size={18} />
             </div>
             <div className="absolute top-2 right-1 md:right-2 flex gap-1 md:gap-2">
+              <button
+                onClick={() => moveWorkItem(index, 'up')}
+                className="text-gray-500 hover:text-blue-600 p-1"
+                title="上移"
+              >
+                <ArrowUp size={16} />
+              </button>
+              <button
+                onClick={() => moveWorkItem(index, 'down')}
+                className="text-gray-500 hover:text-blue-600 p-1"
+                title="下移"
+              >
+                <ArrowDown size={16} />
+              </button>
               <button 
                 onClick={() => {
                   const newWork = [...data.work]; newWork[index].isHidden = !w.isHidden; onChange({ ...data, work: newWork });
@@ -313,6 +344,7 @@ export function ResumeEditor({ data, onChange, template }: EditorProps) {
           <div 
             key={p.id} 
             draggable
+            onTouchStart={() => handleProjDragStart(index)}
             onDragStart={() => handleProjDragStart(index)}
             onDragEnter={() => handleProjDragEnter(index)}
             onDragEnd={handleProjDragEnd}
@@ -323,6 +355,20 @@ export function ResumeEditor({ data, onChange, template }: EditorProps) {
               <GripVertical size={18} />
             </div>
             <div className="absolute top-2 right-1 md:right-2 flex gap-1 md:gap-2">
+              <button
+                onClick={() => moveProjectItem(index, 'up')}
+                className="text-gray-500 hover:text-blue-600 p-1"
+                title="上移"
+              >
+                <ArrowUp size={16} />
+              </button>
+              <button
+                onClick={() => moveProjectItem(index, 'down')}
+                className="text-gray-500 hover:text-blue-600 p-1"
+                title="下移"
+              >
+                <ArrowDown size={16} />
+              </button>
               <button 
                 onClick={() => {
                   const newProj = [...data.projects]; newProj[index].isHidden = !p.isHidden; onChange({ ...data, projects: newProj });

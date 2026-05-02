@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { ResumeTemplate, BlockType, TemplateBlock, LayoutType } from '../../types';
 import { apiService } from '../../services/api';
 // 在其下方添加：ai调用服务
@@ -36,9 +36,39 @@ export function TemplateManagement() {
   const [mainBlocks, setMainBlocks] = useState<TemplateBlock[]>([]);
   const [sidebarBlocks, setSidebarBlocks] = useState<TemplateBlock[]>([]);
   const [mobileTab, setMobileTab] = useState<'settings' | 'canvas'>('settings');
+  const settingsSectionRef = useRef<HTMLDivElement | null>(null);
+  const canvasSectionRef = useRef<HTMLDivElement | null>(null);
 
-  // 在 const [mobileTab, setMobileTab] = useState<'settings' | 'canvas'>('settings'); 下方添加：
-  
+  const handleAddBlock = (type: BlockType) => {
+    setMainBlocks((prev) => [...prev, { id: Date.now().toString(), type }]);
+    setMobileTab('canvas');
+    if (canvasSectionRef.current) {
+      canvasSectionRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  };
+
+  const scrollToSection = (section: 'settings' | 'canvas') => {
+    const target = section === 'settings' ? settingsSectionRef.current : canvasSectionRef.current;
+    if (target) {
+      target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+    setMobileTab(section);
+  };
+
+  useEffect(() => {
+    const handleScroll = () => {
+      if (!settingsSectionRef.current || !canvasSectionRef.current) return;
+      const offset = window.scrollY + 140;
+      if (offset >= canvasSectionRef.current.offsetTop) {
+        setMobileTab('canvas');
+      } else {
+        setMobileTab('settings');
+      }
+    };
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
   const [aiPrompt, setAiPrompt] = useState('');
   const [isGeneratingTemplate, setIsGeneratingTemplate] = useState(false);
 
@@ -239,24 +269,24 @@ export function TemplateManagement() {
         </header>
 
         {/* 移动端标签页切换 */}
-        <div className="md:hidden flex border-b bg-white sticky top-0 z-30">
+        {/* <div className="md:hidden flex border-b bg-white sticky top-0 z-30">
           <button 
-            onClick={() => setMobileTab('settings')}
+            onClick={() => scrollToSection('settings')}
             className={`flex-1 py-3 text-sm font-medium text-center ${mobileTab === 'settings' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-gray-500'}`}
           >
             组件与设置
           </button>
           <button 
-            onClick={() => setMobileTab('canvas')}
+            onClick={() => scrollToSection('canvas')}
             className={`flex-1 py-3 text-sm font-medium text-center ${mobileTab === 'canvas' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-gray-500'}`}
           >
             画布预览
           </button>
-        </div>
+        </div> */}
         
-        <div className="flex flex-col md:flex-row flex-1 overflow-hidden relative">
+        <div className="flex flex-col md:flex-row flex-1 overflow-hidden relative template-builder-scroll">
           {/* Left Sidebar - Components & Settings */}
-          <div className={`w-full md:w-80 h-full bg-white border-r p-4 md:p-6 overflow-y-auto shadow-sm z-10 flex-col gap-6 md:gap-8 ${mobileTab === 'settings' ? 'flex' : 'hidden md:flex'}`}>
+          <div ref={settingsSectionRef} className="w-full flex-1 md:w-80 md:h-full min-h-0 bg-white border-r p-4 md:p-6 overflow-y-auto shadow-sm z-10 flex flex-col gap-6 md:gap-8">
 
             {/* 插入这段 AI 模板生成 UI */}
             <section className="bg-purple-50 p-4 rounded-xl border border-purple-100">
@@ -290,11 +320,16 @@ export function TemplateManagement() {
                     key={block.type}
                     draggable
                     onDragStart={(e) => handleDragStartNew(e, block.type)}
+                    onClick={() => handleAddBlock(block.type)}
+                    role="button"
                     className="p-3 bg-gray-50 border border-gray-200 rounded-xl cursor-grab hover:border-blue-400 hover:bg-blue-50 transition-all flex items-center gap-3 shadow-sm"
                   >
                     <div className="text-gray-400 cursor-grab"><GripVertical size={16} /></div>
                     <div className="p-2 bg-white rounded-lg shadow-sm text-blue-600">{block.icon}</div>
-                    <span className="font-medium text-gray-700">{block.label}</span>
+                    <div className="flex-1 min-w-0">
+                      <div className="font-medium text-gray-700 truncate">{block.label}</div>
+                      <div className="text-[11px] text-gray-500 mt-1">点击添加到模板</div>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -387,8 +422,7 @@ export function TemplateManagement() {
           </div>
 
           {/* Main Canvas */}
-          <div className={`flex-1 h-full bg-gray-200 p-4 md:p-8 overflow-y-auto flex justify-center items-start ${mobileTab === 'canvas' ? 'block' : 'hidden md:flex'}`}>
-            <div 
+          <div ref={canvasSectionRef} className="flex-1 md:h-full min-h-0 bg-gray-200 p-4 md:p-8 overflow-y-auto flex justify-center items-start">            <div 
               className={`shadow-2xl flex transition-all overflow-hidden ${sidebarPosition === 'right' && layoutType === 'two-column' ? 'flex-row-reverse' : 'flex-row'} w-full max-w-[800px] min-h-[800px] md:min-h-[1131px]`}
               style={{ backgroundColor, color: fontColor }}
             >
