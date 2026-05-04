@@ -25,6 +25,7 @@ export function ResumeEditor({ data, onChange, template }: EditorProps) {
 
   // 在现有的 useState 声明下方添加：
   const [aiPrompt, setAiPrompt] = useState('');
+  const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
 
   // 一个辅助函数，用于判断当前模板是否包含某个模块
@@ -34,6 +35,31 @@ export function ResumeEditor({ data, onChange, template }: EditorProps) {
     return mainBlocks.some(b => b.type === blockType) || 
            sidebarBlocks.some(b => b.type === blockType) || 
            blocks.some(b => b.type === blockType);
+  };
+
+  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      // 检查文件类型
+      const allowedTypes = ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'image/jpeg', 'image/png', 'image/jpg'];
+      if (!allowedTypes.includes(file.type)) {
+        alert('只支持PDF、DOC、DOCX、JPG、PNG格式的文件');
+        return;
+      }
+      // 检查文件大小（限制为10MB）
+      if (file.size > 10 * 1024 * 1024) {
+        alert('文件大小不能超过10MB');
+        return;
+      }
+      setUploadedFile(file);
+    }
+  };
+
+  const removeUploadedFile = () => {
+    setUploadedFile(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
   };
 
   const handleGenerateFullResume = async () => {
@@ -50,7 +76,7 @@ export function ResumeEditor({ data, onChange, template }: EditorProps) {
       setIsGenerating(false);
     }
   };
-  
+
   const handleAiOptimize = async (text: string, type: 'summary' | 'work' | 'project', callback: (optimized: string) => void, id: string) => {
     setAiLoading(id);
     let accumulatedText = ""; // 用于累加流式返回的文本片段
@@ -148,6 +174,39 @@ export function ResumeEditor({ data, onChange, template }: EditorProps) {
         >
           {isGenerating ? 'AI 正在努力生成中...' : '✨ 立即生成'}
         </button>
+
+        {/* 文件上传区域 */}
+        <div className="mb-3">
+          <label className="block text-sm text-gray-600 mb-2">或上传旧简历文件（PDF、DOC、DOCX、图片）</label>
+          <div className="flex items-center gap-3">
+            <input title="上传文件"
+              type="file"
+              ref={fileInputRef}
+              onChange={handleFileUpload}
+              accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
+              className="hidden"
+            />
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              className="flex items-center gap-2 px-3 py-2 border border-purple-200 rounded text-sm text-purple-700 hover:bg-purple-50"
+            >
+              <Upload size={16} />
+              选择文件
+            </button>
+            {uploadedFile && (
+              <div className="flex items-center gap-2 flex-1">
+                <span className="text-sm text-gray-600 truncate">{uploadedFile.name}</span>
+                <button
+                  title="取消上传"
+                  onClick={removeUploadedFile}
+                  className="text-red-500 hover:text-red-700 p-1"
+                >
+                  <X size={14} />
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
       </section>
 
       {/* 基本信息 */}
@@ -164,7 +223,7 @@ export function ResumeEditor({ data, onChange, template }: EditorProps) {
                 <>
                   <img src={data.basics.avatar} alt="Avatar" className="w-full h-full object-cover" />
                   <div className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                    <button onClick={(e) => { e.stopPropagation(); removeAvatar(); }} className="text-white p-1 bg-red-500 rounded-full hover:bg-red-600">
+                    <button title="取消" onClick={(e) => { e.stopPropagation(); removeAvatar(); }} className="text-white p-1 bg-red-500 rounded-full hover:bg-red-600">
                       <X size={16} />
                     </button>
                   </div>
@@ -176,7 +235,7 @@ export function ResumeEditor({ data, onChange, template }: EditorProps) {
                 </>
               )}
             </div>
-            <input 
+            <input title="上传头像"
               type="file" 
               ref={fileInputRef} 
               onChange={handleAvatarUpload} 
@@ -188,22 +247,22 @@ export function ResumeEditor({ data, onChange, template }: EditorProps) {
           <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-4">
             <div>
               <label className="block text-xs md:text-sm text-gray-600 mb-1">姓名</label>
-              <input type="text" value={data.basics.name} onChange={e => updateBasics('name', e.target.value)} className="w-full border rounded p-2 text-sm" />
+              <input title="姓名" type="text" value={data.basics.name} onChange={e => updateBasics('name', e.target.value)} className="w-full border rounded p-2 text-sm" />
             </div>
             <div>
               <label className="block text-xs md:text-sm text-gray-600 mb-1">电话</label>
-              <input type="text" value={data.basics.phone} onChange={e => updateBasics('phone', e.target.value)} className="w-full border rounded p-2 text-sm" />
+              <input title="电话" type="text" value={data.basics.phone} onChange={e => updateBasics('phone', e.target.value)} className="w-full border rounded p-2 text-sm" />
             </div>
             <div className="col-span-1 sm:col-span-2">
               <label className="block text-xs md:text-sm text-gray-600 mb-1">邮箱</label>
-              <input type="email" value={data.basics.email} onChange={e => updateBasics('email', e.target.value)} className="w-full border rounded p-2 text-sm" />
+              <input title="邮箱" type="email" value={data.basics.email} onChange={e => updateBasics('email', e.target.value)} className="w-full border rounded p-2 text-sm" />
             </div>
           </div>
         </div>
         
         <div className="relative">
           <label className="block text-xs md:text-sm text-gray-600 mb-1">个人总结</label>
-          <textarea value={data.basics.summary} onChange={e => updateBasics('summary', e.target.value)} className="w-full border rounded p-2 h-24 text-sm" placeholder="简短介绍您的核心优势和职业目标..." />
+          <textarea title="个人总结" value={data.basics.summary} onChange={e => updateBasics('summary', e.target.value)} className="w-full border rounded p-2 h-24 text-sm" placeholder="简短介绍您的核心优势和职业目标..." />
           <button 
             onClick={() => handleAiOptimize(data.basics.summary, 'summary', (val) => updateBasics('summary', val), 'summary')}
             disabled={aiLoading === 'summary'}
@@ -220,15 +279,15 @@ export function ResumeEditor({ data, onChange, template }: EditorProps) {
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-4">
           <div>
             <label className="block text-xs md:text-sm text-gray-600 mb-1">目标职业</label>
-            <input type="text" value={data.jobIntention?.targetJob || ''} onChange={e => onChange({ ...data, jobIntention: { ...data.jobIntention, targetJob: e.target.value } as any })} className="w-full border rounded p-2 text-sm" placeholder="如：前端开发工程师" />
+            <input title="目标职业" type="text" value={data.jobIntention?.targetJob || ''} onChange={e => onChange({ ...data, jobIntention: { ...data.jobIntention, targetJob: e.target.value } as any })} className="w-full border rounded p-2 text-sm" placeholder="如：前端开发工程师" />
           </div>
           <div>
             <label className="block text-xs md:text-sm text-gray-600 mb-1">意向城市</label>
-            <input type="text" value={data.jobIntention?.targetCity || ''} onChange={e => onChange({ ...data, jobIntention: { ...data.jobIntention, targetCity: e.target.value } as any })} className="w-full border rounded p-2 text-sm" placeholder="如：北京、上海" />
+            <input title="意向城市" type="text" value={data.jobIntention?.targetCity || ''} onChange={e => onChange({ ...data, jobIntention: { ...data.jobIntention, targetCity: e.target.value } as any })} className="w-full border rounded p-2 text-sm" placeholder="如：北京、上海" />
           </div>
           <div>
             <label className="block text-xs md:text-sm text-gray-600 mb-1">期望薪资</label>
-            <input type="text" value={data.jobIntention?.expectedSalary || ''} onChange={e => onChange({ ...data, jobIntention: { ...data.jobIntention, expectedSalary: e.target.value } as any })} className="w-full border rounded p-2 text-sm" placeholder="如：15k-20k" />
+            <input title="期望薪资" type="text" value={data.jobIntention?.expectedSalary || ''} onChange={e => onChange({ ...data, jobIntention: { ...data.jobIntention, expectedSalary: e.target.value } as any })} className="w-full border rounded p-2 text-sm" placeholder="如：15k-20k" />
           </div>
         </div>
       </section>
@@ -242,7 +301,7 @@ export function ResumeEditor({ data, onChange, template }: EditorProps) {
         </div>
         {data.education.map((edu, index) => (
           <div key={edu.id} className="mb-4 p-3 md:p-4 border rounded relative bg-gray-50">
-            <button onClick={() => onChange({ ...data, education: data.education.filter(e => e.id !== edu.id) })} className="absolute top-2 right-2 text-red-500 p-1"><Trash2 size={16}/></button>
+            <button title="删除教育经历" onClick={() => onChange({ ...data, education: data.education.filter(e => e.id !== edu.id) })} className="absolute top-2 right-2 text-red-500 p-1"><Trash2 size={16}/></button>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-4 mt-2 sm:mt-0">
               <input placeholder="学校名称" value={edu.school} onChange={e => {
                 const newEdu = [...data.education]; newEdu[index].school = e.target.value; onChange({ ...data, education: newEdu });
@@ -425,7 +484,7 @@ export function ResumeEditor({ data, onChange, template }: EditorProps) {
               <button onClick={() => { const newAwards = [...(data.awards || [])]; newAwards[index].isHidden = !award.isHidden; onChange({ ...data, awards: newAwards }); }} className="text-gray-500 hover:text-blue-600 p-1">
                 {award.isHidden ? <EyeOff size={16} /> : <Eye size={16} />}
               </button>
-              <button onClick={() => onChange({ ...data, awards: (data.awards || []).filter(e => e.id !== award.id) })} className="text-red-500 hover:text-red-700 p-1"><Trash2 size={16}/></button>
+              <button title="删除获奖情况" onClick={() => onChange({ ...data, awards: (data.awards || []).filter(e => e.id !== award.id) })} className="text-red-500 hover:text-red-700 p-1"><Trash2 size={16}/></button>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-4 mt-6 sm:mt-2">
               <input placeholder="奖项名称" value={award.name} onChange={e => { const newAwards = [...(data.awards || [])]; newAwards[index].name = e.target.value; onChange({ ...data, awards: newAwards }); }} className="border rounded p-2 bg-white text-sm" />
@@ -450,7 +509,7 @@ export function ResumeEditor({ data, onChange, template }: EditorProps) {
               <button onClick={() => { const newCerts = [...(data.certifications || [])]; newCerts[index].isHidden = !cert.isHidden; onChange({ ...data, certifications: newCerts }); }} className="text-gray-500 hover:text-blue-600 p-1">
                 {cert.isHidden ? <EyeOff size={16} /> : <Eye size={16} />}
               </button>
-              <button onClick={() => onChange({ ...data, certifications: (data.certifications || []).filter(e => e.id !== cert.id) })} className="text-red-500 hover:text-red-700 p-1"><Trash2 size={16}/></button>
+              <button title="删除证书" onClick={() => onChange({ ...data, certifications: (data.certifications || []).filter(e => e.id !== cert.id) })} className="text-red-500 hover:text-red-700 p-1"><Trash2 size={16}/></button>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-4 mt-6 sm:mt-2">
               <input placeholder="证书名称" value={cert.name} onChange={e => { const newCerts = [...(data.certifications || [])]; newCerts[index].name = e.target.value; onChange({ ...data, certifications: newCerts }); }} className="border rounded p-2 bg-white text-sm" />
@@ -474,7 +533,7 @@ export function ResumeEditor({ data, onChange, template }: EditorProps) {
               <button onClick={() => { const newPortfolio = [...(data.portfolio || [])]; newPortfolio[index].isHidden = !item.isHidden; onChange({ ...data, portfolio: newPortfolio }); }} className="text-gray-500 hover:text-blue-600 p-1">
                 {item.isHidden ? <EyeOff size={16} /> : <Eye size={16} />}
               </button>
-              <button onClick={() => onChange({ ...data, portfolio: (data.portfolio || []).filter(e => e.id !== item.id) })} className="text-red-500 hover:text-red-700 p-1"><Trash2 size={16}/></button>
+              <button title="删除作品" onClick={() => onChange({ ...data, portfolio: (data.portfolio || []).filter(e => e.id !== item.id) })} className="text-red-500 hover:text-red-700 p-1"><Trash2 size={16}/></button>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-4 mt-6 sm:mt-2">
               <input placeholder="作品名称" value={item.title} onChange={e => { const newPortfolio = [...(data.portfolio || [])]; newPortfolio[index].title = e.target.value; onChange({ ...data, portfolio: newPortfolio }); }} className="border rounded p-2 bg-white text-sm" />

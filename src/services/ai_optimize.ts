@@ -88,6 +88,33 @@ export const aiService = {
   },
 
   /**
+   * AI 根据上传的文件生成完整简历结构
+   */
+  async generateFullResumeFromFile(file: File, additionalPrompt?: string): Promise<any> {
+    const token = localStorage.getItem('auth_token');
+    if (!token) throw new Error("请先登录");
+
+    const formData = new FormData();
+    formData.append('file', file);
+    if (additionalPrompt) {
+      formData.append('additionalPrompt', additionalPrompt);
+    }
+
+    const response = await fetch(`${API_URL}/ai/generate-resume-from-file`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`
+      },
+      body: formData
+    });
+
+    if (!response.ok) {
+      throw new Error("AI 生成简历失败");
+    }
+    return await response.json();
+  },
+  
+  /**
    * AI 根据简单描述一键生成完整简历结构
    */
   async generateFullResume(prompt: string): Promise<any> {

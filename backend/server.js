@@ -4,6 +4,10 @@ const cors = require('cors');
 const mysql = require('mysql2/promise');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const multer = require('multer');
+const pdfParse = require('pdf-parse');
+const mammoth = require('mammoth');
+const { createWorker } = require('tesseract.js');
 
 const app = express();
 // 增加 JSON 请求体大小限制
@@ -14,6 +18,30 @@ app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
 app.use(cors());
 app.use(express.json());
+
+// 配置multer用于文件上传
+const storage = multer.memoryStorage();
+const upload = multer({
+  storage: storage,
+  limits: {
+    fileSize: 10 * 1024 * 1024, // 10MB限制
+  },
+  fileFilter: (req, file, cb) => {
+    const allowedTypes = [
+      'application/pdf',
+      'application/msword',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      'image/jpeg',
+      'image/png',
+      'image/jpg'
+    ];
+    if (allowedTypes.includes(file.mimetype)) {
+      cb(null, true);
+    } else {
+      cb(new Error('只支持PDF、DOC、DOCX、JPG、PNG格式的文件'));
+    }
+  }
+});
 
 const PORT = process.env.PORT || 9901;
 const JWT_SECRET = process.env.JWT_SECRET || 'ABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890@PLUS';
@@ -50,6 +78,29 @@ const isAdmin = (req, res, next) => {
   }
   next();
 };
+
+// 文件处理函数
+async function extractTextFromFile(fileBuffer, mimeType, fileName) {
+  try {
+    if (mimeType === 'application/pdf') {
+      const data = await pdfParse(fileBuffer);
+      return data.text;
+    } else if (mimeType === 'application/msword' || mimeType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
+      const result = await mammoth.extractRawText({ buffer: fileBuffer });
+      return result.value;
+    } else if (mimeType.startsWith('image/')) {
+      const worker = await createWorker('chi_sim+eng');
+      const { data: { text } } = await worker.recognize(fileBuffer);
+      await worker.terminate();
+      return text;
+    } else {
+      throw new Error('不支持的文件类型');
+    }
+  } catch (error) {
+    console.error('文件解析失败:', error);
+    throw new Error('文件解析失败，请检查文件格式是否正确');
+  }
+}
 
 // --- AUTH ROUTES ---
 
@@ -462,6 +513,57 @@ app.post('/api/ai-optimize', authenticateToken, async (req, res) => {
     console.error("AI 润色请求失败:", error);
     res.write(`data: ${JSON.stringify({ error: 'AI 润色失败，请稍后重试' })}\n\n`);
     res.end();
+  }
+});
+
+// AI 根据上传的文件生成完整简历内容
+app.post('/api/ai/generate-resume-from-file', authenticateToken, upload.single('file'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: '未找到上传的文件' });
+    }
+
+    const fileBuffer = req.file.buffer;
+    const mimeType = req.file.mimetype;
+    const fileName = req.file.originalname;
+    const additionalPrompt = req.body.additionalPrompt || '';
+
+    // 提取文件文本内容
+    const extractedText = await extractTextFromFile(fileBuffer, mimeType, fileName);
+    
+    // 构建AI提示词
+    const fullPrompt = `请根据以下简历文件内容生成完整的简历数据：\n\n${extractedText}\n\n${additionalPrompt ? `额外要求：${additionalPrompt}` : ''}`;
+
+    const systemInstruction = `你是一个专业的简历生成助手。请根据用户提供的简历文件内容，提取并整理成一份完整的简历数据。
+  必须严格返回 JSON 格式，不要包含任何 Markdown 标记（如 \`\`\`json）。
+  JSON 结构必须严格如下：
+  {
+    "basics": { "name": "", "email": "", "phone": "", "summary": "", "avatar": "" },
+    "work": [{ "id": "1", "company": "", "position": "", "duration": "", "description": "", "isHidden": false }],
+    "education": [{ "id": "1", "school": "", "degree": "", "year": "" }],
+    "jobIntention": { "targetJob": "", "targetCity": "", "expectedSalary": "" },
+    "projects": [{ "id": "1", "name": "", "role": "", "duration": "", "description": "", "technologies": "", "isHidden": false }],
+    "awards": [{ "id": "1", "name": "", "date": "", "description": "", "isHidden": false }],
+    "certifications": [{ "id": "1", "name": "", "date": "", "description": "", "isHidden": false }],
+    "portfolio": [{ "id": "1", "name": "", "url": "", "description": "", "isHidden": false }],
+    "skills": "",
+    "hobbies": ""
+  }`;
+
+    const response = await ai.models.generateContent({
+      model: "gemini-3-flash-preview",
+      contents: fullPrompt,
+      config: {
+        systemInstruction: systemInstruction,
+        temperature: 0.7,
+        responseMimeType: "application/json",
+      }
+    });
+    
+    res.json(JSON.parse(response.text));
+  } catch (error) {
+    console.error("AI 生成简历失败:", error);
+    res.status(500).json({ error: error.message || 'AI 生成简历失败' });
   }
 });
 
