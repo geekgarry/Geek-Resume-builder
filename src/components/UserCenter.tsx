@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { User, ResumeRecord, defaultResumeData } from '../types';
+import { User, ResumeRecord, defaultResumeData, PPTData, defaultPPTConfig } from '../types';
 import { apiService } from '../services/api';
 import { Trash2, Edit2, Plus, FileText, Check, X } from 'lucide-react';
 
@@ -12,7 +12,7 @@ interface UserCenterProps {
 }
 
 export function UserCenter({ user, onClose, onUpdate, currentResumeId, onSelectResume }: UserCenterProps) {
-  const [activeTab, setActiveTab] = useState<'profile' | 'resumes'>('resumes');
+  const [activeTab, setActiveTab] = useState<'profile' | 'resumes' | 'ppts'>('resumes');
   
   // Profile state
   const [username, setUsername] = useState(user.username);
@@ -24,6 +24,11 @@ export function UserCenter({ user, onClose, onUpdate, currentResumeId, onSelectR
   const [editingResumeId, setEditingResumeId] = useState<string | null>(null);
   const [editingTitle, setEditingTitle] = useState('');
   
+  // PPTs state
+  const [ppts, setPpts] = useState<PPTData[]>([]);
+  const [editingPPTId, setEditingPPTId] = useState<string | null>(null);
+  const [editingPPTTitle, setEditingPPTTitle] = useState('');
+  
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -31,6 +36,8 @@ export function UserCenter({ user, onClose, onUpdate, currentResumeId, onSelectR
   useEffect(() => {
     if (activeTab === 'resumes') {
       loadResumes();
+    } else if (activeTab === 'ppts') {
+      loadPPTs();
     }
   }, [activeTab]);
 
@@ -38,6 +45,15 @@ export function UserCenter({ user, onClose, onUpdate, currentResumeId, onSelectR
     try {
       const data = await apiService.getResumes();
       setResumes(data);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const loadPPTs = async () => {
+    try {
+      const data = await apiService.getUserPPTs();
+      setPpts(data);
     } catch (err) {
       console.error(err);
     }
@@ -106,6 +122,45 @@ export function UserCenter({ user, onClose, onUpdate, currentResumeId, onSelectR
     }
   };
 
+  const handleCreatePPT = async () => {
+    try {
+      const newPPT = await apiService.createPPT({
+        title: '未命名PPT',
+        slides: [],
+        config: defaultPPTConfig
+      });
+      setPpts([newPPT, ...ppts]);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleDeletePPT = async (id: string) => {
+    if (ppts.length <= 1) {
+      alert('至少需要保留一份PPT');
+      return;
+    }
+    if (window.confirm('确定要删除这份PPT吗？')) {
+      try {
+        await apiService.deletePPT(id);
+        setPpts(ppts.filter(p => p.id !== id));
+      } catch (err) {
+        console.error(err);
+      }
+    }
+  };
+
+  const handleSavePPTTitle = async (id: string) => {
+    if (!editingPPTTitle.trim()) return;
+    try {
+      await apiService.updatePPT(id, { title: editingPPTTitle });
+      setPpts(ppts.map(p => p.id === id ? { ...p, title: editingPPTTitle } : p));
+      setEditingPPTId(null);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-xl w-full max-w-2xl shadow-2xl relative flex flex-col max-h-[90vh]">
@@ -117,9 +172,15 @@ export function UserCenter({ user, onClose, onUpdate, currentResumeId, onSelectR
         <div className="flex border border-gray-300">
           <button 
             onClick={() => setActiveTab('resumes')}
-            className={`flex-1 py-4 font-medium text-center ${activeTab === 'resumes' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-gray-500 rounded-tl-xl hover:bg-gray-50'}`}
+            className={`flex-1 py-4 font-medium text-center ${activeTab === 'resumes' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-gray-500 hover:bg-gray-50'}`}
           >
             我的简历
+          </button>
+          <button 
+            onClick={() => setActiveTab('ppts')}
+            className={`flex-1 py-4 font-medium text-center ${activeTab === 'ppts' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-gray-500 hover:bg-gray-50'}`}
+          >
+            我的PPT
           </button>
           <button 
             onClick={() => setActiveTab('profile')}
@@ -180,6 +241,90 @@ export function UserCenter({ user, onClose, onUpdate, currentResumeId, onSelectR
                   {loading ? '保存中...' : '保存修改'}
                 </button>
               </form>
+            </div>
+          ) : activeTab === 'ppts' ? (
+            <div>
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-lg font-bold text-gray-800">PPT列表</h3>
+                <button 
+                  onClick={handleCreatePPT}
+                  className="flex items-center gap-1 bg-blue-50 text-blue-600 px-3 py-1.5 rounded-lg text-sm font-medium hover:bg-blue-100 transition-colors"
+                >
+                  <Plus size={16} /> 新建PPT
+                </button>
+              </div>
+              
+              <div className="space-y-3">
+                {ppts.map(ppt => (
+                  <div 
+                    key={ppt.id} 
+                    className={`flex items-center justify-between p-4 rounded-xl border transition-all ${
+                      'border-gray-200 hover:border-blue-300 hover:shadow-sm'
+                    }`}
+                  >
+                    <div className="flex items-center gap-3 flex-1">
+                      <div className="p-2 rounded-lg bg-gray-100 text-gray-500">
+                        <FileText size={20} />
+                      </div>
+                      
+                      {editingPPTId === ppt.id ? (
+                        <div className="flex items-center gap-2 flex-1 max-w-xs">
+                          <input 
+                            placeholder="请输入PPT标题"
+                            type="text" 
+                            value={editingPPTTitle}
+                            onChange={(e) => setEditingPPTTitle(e.target.value)}
+                            className="border border-blue-300 rounded px-2 py-1 text-sm w-full focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            autoFocus
+                            onKeyDown={(e) => e.key === 'Enter' && handleSavePPTTitle(ppt.id!)}
+                          />
+                          <button title="保存" onClick={() => handleSavePPTTitle(ppt.id!)} className="text-green-600 hover:bg-green-50 p-1 rounded">
+                            <Check size={16} />
+                          </button>
+                          <button title="取消" onClick={() => setEditingPPTId(null)} className="text-gray-400 hover:bg-gray-100 p-1 rounded">
+                            <X size={16} />
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="flex-1">
+                          <div className="font-medium text-gray-800 flex items-center gap-2">
+                            {ppt.title}
+                          </div>
+                          <div className="text-xs text-gray-400 mt-0.5">
+                            最后更新: {new Date(ppt.updatedAt || ppt.createdAt || '').toLocaleString()}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                    
+                    <div className="flex items-center gap-1 ml-4">
+                      <button 
+                        onClick={() => {
+                          setEditingPPTId(ppt.id!);
+                          setEditingPPTTitle(ppt.title);
+                        }}
+                        className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                        title="重命名"
+                      >
+                        <Edit2 size={16} />
+                      </button>
+                      <button 
+                        onClick={() => handleDeletePPT(ppt.id!)}
+                        className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                        title="删除"
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+                
+                {ppts.length === 0 && (
+                  <div className="text-center py-8 text-gray-500">
+                    暂无PPT，请新建一份
+                  </div>
+                )}
+              </div>
             </div>
           ) : (
             <div>

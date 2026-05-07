@@ -2,14 +2,15 @@ import React, { useState } from 'react';
 import { UserManagement } from './UserManagement';
 import { TemplateManagement } from './TemplateManagement';
 import { ResumeManagement } from './ResumeManagement';
-import { Users, LayoutTemplate, ArrowLeft, FileText } from 'lucide-react';
+import { PPTManagement } from './PPTManagement';
+import { Users, LayoutTemplate, ArrowLeft, FileText, Presentation } from 'lucide-react';
 
 interface AdminDashboardProps {
   onBack: () => void;
 }
 
 export function AdminDashboard({ onBack }: AdminDashboardProps) {
-  const [activeTab, setActiveTab] = useState<'users' | 'templates' | 'resumes'>('users');
+  const [activeTab, setActiveTab] = useState<'users' | 'templates' | 'resumes' | 'ppts'>('users');
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col font-sans">
@@ -67,6 +68,17 @@ export function AdminDashboard({ onBack }: AdminDashboardProps) {
               <FileText size={18} />
               用户简历
             </button>
+            <button
+              onClick={() => setActiveTab('ppts')}
+              className={`flex-1 md:w-full flex items-center justify-center md:justify-start gap-2 md:gap-3 px-3 md:px-4 py-2 md:py-3 rounded-lg md:rounded-xl text-xs md:text-sm font-medium transition-colors whitespace-nowrap ${
+                activeTab === 'ppts' 
+                  ? 'bg-blue-50 text-blue-700 border border-blue-100' 
+                  : 'text-gray-600 hover:bg-gray-50'
+              }`}
+            >
+              <Presentation size={18} />
+              用户PPT
+            </button>
           </nav>
         </aside>
 
@@ -76,6 +88,7 @@ export function AdminDashboard({ onBack }: AdminDashboardProps) {
             {activeTab === 'users' && <UserManagement />}
             {activeTab === 'templates' && <TemplateManagement />}
             {activeTab === 'resumes' && <ResumeManagement />}
+            {activeTab === 'ppts' && <PPTManagement />}
           </div>
         </main>
       </div>

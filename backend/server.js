@@ -349,6 +349,277 @@ app.delete('/api/admin/users/:id', authenticateToken, isAdmin, async (req, res) 
   }
 });
 
+// --- PPT ROUTES ---
+
+// Get user's PPTs
+app.get('/api/ppts/me', authenticateToken, async (req, res) => {
+  try {
+    const [rows] = await pool.query(
+      'SELECT id, title, ppt_data, created_at, updated_at FROM ppts WHERE user_id = ? ORDER BY updated_at DESC',
+      [req.user.id]
+    );
+
+    const ppts = rows.map(row => {
+      const pptData = typeof row.ppt_data === 'string' ? JSON.parse(row.ppt_data) : row.ppt_data;
+      return {
+        id: row.id,
+        userId: req.user.id,
+        title: row.title,
+        slides: pptData.slides || [],
+        config: pptData.config || {
+          theme: 'modern',
+          primaryColor: '#3B82F6',
+          secondaryColor: '#6B7280',
+          backgroundColor: '#FFFFFF',
+          fontFamily: 'Inter, sans-serif',
+          slideTransition: 'fade',
+          autoPlayInterval: 5000,
+          showControls: true,
+          showProgress: true,
+        },
+        createdAt: row.created_at,
+        updatedAt: row.updated_at,
+      };
+    });
+
+    res.json(ppts);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// Create PPT
+app.post('/api/ppts/me', authenticateToken, async (req, res) => {
+  try {
+    const { title, slides, config } = req.body;
+    const pptId = `ppt_${Date.now()}`;
+    const pptData = { title, slides, config };
+
+    await pool.query(
+      'INSERT INTO ppts (id, user_id, title, ppt_data) VALUES (?, ?, ?, ?)',
+      [pptId, req.user.id, title, JSON.stringify(pptData)]
+    );
+
+    res.json({ id: pptId, userId: req.user.id, title, slides, config, createdAt: new Date(), updatedAt: new Date() });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// Update PPT
+app.put('/api/ppts/me/:id', authenticateToken, async (req, res) => {
+  try {
+    const { title, slides, config } = req.body;
+    const pptData = { title, slides, config };
+
+    const [result] = await pool.query(
+      'UPDATE ppts SET title = ?, ppt_data = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND user_id = ?',
+      [title, JSON.stringify(pptData), req.params.id, req.user.id]
+    );
+
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ error: 'PPT not found' });
+    }
+
+    res.json({ success: true });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// Delete PPT
+app.delete('/api/ppts/me/:id', authenticateToken, async (req, res) => {
+  try {
+    const [result] = await pool.query(
+      'DELETE FROM ppts WHERE id = ? AND user_id = ?',
+      [req.params.id, req.user.id]
+    );
+
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ error: 'PPT not found' });
+    }
+
+    res.json({ success: true });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// Admin: Get all PPTs
+app.get('/api/admin/ppts', authenticateToken, isAdmin, async (req, res) => {
+  try {
+    const [rows] = await pool.query(`
+      SELECT p.id, p.title, p.created_at, p.updated_at, u.username as user_name
+      FROM ppts p
+      JOIN users u ON p.user_id = u.id
+      ORDER BY p.updated_at DESC
+    `);
+    res.json(rows);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// Admin: Get PPT by ID
+app.get('/api/admin/ppts/:id', authenticateToken, isAdmin, async (req, res) => {
+  try {
+    const [rows] = await pool.query(
+      'SELECT p.*, u.username as user_name FROM ppts p JOIN users u ON p.user_id = u.id WHERE p.id = ?',
+      [req.params.id]
+    );
+
+    if (rows.length === 0) {
+      return res.status(404).json({ error: 'PPT not found' });
+    }
+
+    const ppt = rows[0];
+    const pptData = typeof ppt.ppt_data === 'string' ? JSON.parse(ppt.ppt_data) : ppt.ppt_data;
+
+    res.json({
+      id: ppt.id,
+      userId: ppt.user_id,
+      title: ppt.title,
+      slides: pptData.slides || [],
+      config: pptData.config || {
+        theme: 'modern',
+        primaryColor: '#3B82F6',
+        secondaryColor: '#6B7280',
+        backgroundColor: '#FFFFFF',
+        fontFamily: 'Inter, sans-serif',
+        slideTransition: 'fade',
+        autoPlayInterval: 5000,
+        showControls: true,
+        showProgress: true,
+      },
+      createdAt: ppt.created_at,
+      updatedAt: ppt.updated_at,
+      userName: ppt.user_name
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// --- FILE UPLOAD ROUTES ---
+
+// Configure multer for file uploads
+const uploadForPPT = multer({
+  dest: 'uploads/',
+  limits: {
+    fileSize: 10 * 1024 * 1024, // 10MB limit
+  },
+  fileFilter: (req, file, cb) => {
+    const allowedTypes = [
+      'application/pdf',
+      'application/msword',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      'image/jpeg',
+      'image/png',
+      'image/gif',
+      'image/webp',
+      'text/plain'
+    ];
+    if (allowedTypes.includes(file.mimetype)) {
+      cb(null, true);
+    } else {
+      cb(new Error('Unsupported file type'), false);
+    }
+  }
+});
+
+// Upload and process file for PPT generation
+app.post('/api/upload/process-ppt', authenticateToken, uploadForPPT.single('file'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: 'No file uploaded' });
+    }
+
+    const file = req.file;
+    let extractedText = '';
+
+    // Process different file types
+    if (file.mimetype === 'application/pdf') {
+      // PDF processing
+      const fs = require('fs');
+      const pdfBuffer = fs.readFileSync(file.path);
+      const pdfData = await pdfParse(pdfBuffer);
+      extractedText = pdfData.text;
+    } else if (file.mimetype === 'application/msword' ||
+               file.mimetype === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
+      // DOC/DOCX processing
+      const fs = require('fs');
+      const docBuffer = fs.readFileSync(file.path);
+      const result = await mammoth.extractRawText({ buffer: docBuffer });
+      extractedText = result.value;
+    } else if (file.mimetype.startsWith('image/')) {
+      // Image OCR processing
+      const { createWorker } = require('tesseract.js');
+      const worker = await createWorker();
+      await worker.loadLanguage('eng+chi_sim');
+      await worker.initialize('eng+chi_sim');
+      const { data: { text } } = await worker.recognize(file.path);
+      await worker.terminate();
+      extractedText = text;
+    } else if (file.mimetype === 'text/plain') {
+      // Plain text
+      const fs = require('fs');
+      extractedText = fs.readFileSync(file.path, 'utf8');
+    }
+
+    // Clean up uploaded file
+    const fs = require('fs');
+    fs.unlinkSync(file.path);
+
+    // Use AI to generate PPT from extracted text
+    const systemInstruction = `你是一个专业的PPT制作助手。请根据提供的文本内容，生成一个结构化的PPT演示文稿。
+    必须严格返回 JSON 格式，不要包含任何 Markdown 标记。
+    JSON 结构如下：
+    {
+      "title": "PPT标题",
+      "slides": [
+        {
+          "id": "slide1",
+          "title": "幻灯片标题",
+          "content": "幻灯片内容",
+          "type": "title | content | image | list"
+        }
+      ],
+      "config": {
+        "theme": "default",
+        "primaryColor": "#0066cc",
+        "secondaryColor": "#ffffff",
+        "backgroundColor": "#f5f5f5",
+        "transition": "fade",
+        "autoAdvance": false,
+        "advanceInterval": 5000
+      }
+    }`;
+
+    const response = await ai.models.generateContent({
+      model: "gemini-3-flash-preview",
+      contents: `请根据以下文本内容生成PPT：\n\n${extractedText}`,
+      config: {
+        systemInstruction: systemInstruction,
+        temperature: 0.7,
+        responseMimeType: "application/json",
+      }
+    });
+
+    const pptData = JSON.parse(response.text);
+    res.json(pptData);
+
+  } catch (error) {
+    console.error("文件处理失败:", error);
+    res.status(500).json({ error: '文件处理失败' });
+  }
+});
+
 // Add or Update template
 app.post('/api/templates', authenticateToken, isAdmin, async (req, res) => {
   try {
@@ -602,6 +873,133 @@ app.post('/api/ai/generate-resume', authenticateToken, async (req, res) => {
   } catch (error) {
     console.error("AI 生成简历失败:", error);
     res.status(500).json({ error: 'AI 生成简历失败' });
+  }
+});
+
+// AI 根据简历数据生成 PPT
+app.post('/api/ai/generate-ppt-from-resume', authenticateToken, async (req, res) => {
+  const { resumeData, prompt } = req.body;
+  if (!resumeData) return res.status(400).json({ error: 'resumeData is required' });
+
+  const additionalPrompt = prompt ? `\n\n附加要求：${prompt}` : '';
+  const fullPrompt = `请根据以下简历数据生成一个专业、美观的PPT演示文稿。要求：
+
+1. PPT结构要完整，包含封面、目录、主要内容、总结等部分
+2. 每张幻灯片要有吸引人的标题和丰富的内容
+3. 使用专业的配色方案，包含主色调、辅助色、背景色
+4. 内容要分层级组织，使用 bullet points 和编号
+5. 包含数据可视化建议（如图表、图标等）
+6. 字体和排版要专业美观
+
+必须严格返回 JSON 格式，不要包含任何 Markdown 标记。输出结构如下：
+{
+  "title": "专业PPT标题",
+  "slides": [
+    {
+      "id": "slide1",
+      "title": "幻灯片标题",
+      "content": "详细的幻灯片内容，可以包含多行文本和列表",
+      "type": "title|content|list|image|chart",
+      "layout": "center|left|right|split",
+      "backgroundColor": "#HEX颜色",
+      "textColor": "#HEX颜色"
+    }
+  ],
+  "config": {
+    "theme": "professional|modern|creative|elegant",
+    "primaryColor": "#0066cc",
+    "secondaryColor": "#4a90e2",
+    "accentColor": "#ff6b6b",
+    "backgroundColor": "#ffffff",
+    "textColor": "#333333",
+    "fontFamily": "Inter, sans-serif",
+    "slideTransition": "fade|slide|zoom|none",
+    "autoPlayInterval": 5000,
+    "showControls": true,
+    "showProgress": true
+  }
+}
+
+简历数据：${JSON.stringify(resumeData)}${additionalPrompt}`;
+
+  try {
+    const response = await ai.models.generateContent({
+      model: "gemini-3-flash-preview",
+      contents: fullPrompt,
+      config: {
+        systemInstruction: '你是一个专业的PPT设计师和内容 strategist。请将简历信息转换为具有视觉冲击力和专业水准的演示文稿。重点关注信息层次、视觉设计和受众体验。',
+        temperature: 0.8,
+        responseMimeType: "application/json",
+      }
+    });
+    res.json(JSON.parse(response.text));
+  } catch (error) {
+    console.error("AI 生成PPT失败:", error);
+    res.status(500).json({ error: 'AI 生成PPT失败' });
+  }
+});
+
+// AI 根据文本生成 PPT
+app.post('/api/ai/generate-ppt-from-text', authenticateToken, async (req, res) => {
+  const { prompt } = req.body;
+  if (!prompt) return res.status(400).json({ error: 'Prompt is required' });
+
+  const systemInstruction = `你是一个专业的PPT设计师。请根据用户提供的文本内容生成一个具有视觉吸引力和专业水准的PPT演示文稿。要求：
+
+1. 分析文本内容，提取关键信息和主题
+2. 创建逻辑清晰的PPT结构（引言、主体、结论）
+3. 每张幻灯片要有吸引人的标题和丰富的内容
+4. 使用专业的配色方案和排版设计
+5. 内容要层次分明，使用 bullet points、编号和强调
+6. 考虑视觉元素，如图标、图表建议等
+
+必须严格返回 JSON 格式，不要包含任何 Markdown 标记。输出结构如下：
+{
+  "title": "PPT标题",
+  "slides": [
+    {
+      "id": "slide1",
+      "title": "幻灯片标题",
+      "content": "详细的幻灯片内容，可以包含多行文本、列表和格式化内容",
+      "type": "title|content|list|image|chart|quote",
+      "layout": "center|left|right|split|full",
+      "backgroundColor": "#HEX颜色",
+      "textColor": "#HEX颜色",
+      "notes": "演讲者备注（可选）"
+    }
+  ],
+  "config": {
+    "theme": "professional|modern|creative|elegant|minimal",
+    "primaryColor": "#0066cc",
+    "secondaryColor": "#4a90e2",
+    "accentColor": "#ff6b6b",
+    "backgroundColor": "#ffffff",
+    "textColor": "#333333",
+    "headingColor": "#1a1a1a",
+    "fontFamily": "Inter, sans-serif",
+    "headingFontFamily": "Inter, sans-serif",
+    "slideTransition": "fade|slide-left|slide-right|zoom|none",
+    "autoPlayInterval": 5000,
+    "showControls": true,
+    "showProgress": true,
+    "showSlideNumbers": true
+  }
+}`;
+
+  try {
+    const response = await ai.models.generateContent({
+      model: "gemini-3-flash-preview",
+      contents: prompt,
+      config: {
+        systemInstruction: systemInstruction,
+        temperature: 0.8,
+        responseMimeType: "application/json",
+      }
+    });
+    res.json(JSON.parse(response.text));
+  } catch (error) {
+    console.error("AI 生成PPT失败:", error);
+    res.status(500).json({ error: 'AI 生成PPT失败' });
   }
 });
 

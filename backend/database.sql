@@ -46,3 +46,14 @@ INSERT INTO `templates` (`id`, `name`, `description`, `is_vip`, `layout_data`) V
 ('template3', '表格样式', '传统的表格布局，适合展示详细信息。', FALSE, NULL),
 ('template4', 'PPT风格', 'PPT风格的简历模板。', TRUE, NULL),
 ('template5', '自定义动态模板', '通过后台拖拽生成的动态模板示例。', FALSE, '{"layoutType":"two-column","sidebarPosition":"left","themeColor":"#0ea5e9","fontColor":"#333333","backgroundColor":"#ffffff","sidebarBackgroundColor":"#f8fafc","mainBlocks":[{"id":"1","type":"header"},{"id":"2","type":"summary"},{"id":"3","type":"work"},{"id":"4","type":"projects"}],"sidebarBlocks":[{"id":"5","type":"education"},{"id":"6","type":"skills"}]}');
+
+-- 4. PPTs Table (Storing PPT data)
+CREATE TABLE `ppts` (
+  `id` VARCHAR(50) PRIMARY KEY,
+  `user_id` VARCHAR(50) NOT NULL,
+  `title` VARCHAR(200) NOT NULL DEFAULT '未命名PPT',
+  `ppt_data` JSON NOT NULL,
+  `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE CASCADE
+);

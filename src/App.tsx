@@ -13,7 +13,7 @@ import { AuthModal } from "./components/AuthModal";
 import { ConfirmDialog } from "./components/ConfirmDialog";
 import { UserCenter } from "./components/UserCenter";
 import { AdminDashboard } from "./components/admin/AdminDashboard";
-import { AnalysisModule } from "./components/AnalysisModule";
+import { PPTMaker } from "./components/PPTMaker";
 import {
   Download,
   LogIn,
@@ -40,7 +40,7 @@ import {
 
 import * as htmlToImage from "html-to-image";
 import jsPDF from "jspdf";
-import html2pdf from "html2pdf";
+import html2pdf from "html2pdf.js";
 // import { saveAs } from "file-saver";
 // import * as FileSaver from 'file-saver';
 // import { Document, Packer, Paragraph, TextRun } from "docx";
@@ -59,7 +59,7 @@ export default function App() {
   // 增加以下状态：isDrawerOpen 用于控制侧边栏抽屉的显示，isTemplateModalOpen 用于控制简历模板选择弹框的显示，activePage 用于区分当前是简历编辑页还是分析页，以便在页面切换时进行相应的逻辑处理（例如提示用户正在运行的 AI 任务）。这些状态将帮助我们更好地管理 UI 的交互和用户体验。
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [isTemplateModalOpen, setIsTemplateModalOpen] = useState(false);
-  const [activePage, setActivePage] = useState<"builder" | "analysis">(
+  const [activePage, setActivePage] = useState<"builder" | "analysis" | "ppt">(
     "builder",
   );
 
@@ -881,6 +881,12 @@ export default function App() {
             >
               岗位与行业分析
             </button>
+            <button
+              onClick={() => switchPage("ppt")}
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${activePage === "ppt" ? "bg-blue-600 text-white" : "text-gray-600 hover:bg-gray-100"}`}
+            >
+              AI PPT 生成
+            </button>
           </div>
         </div>
         <div className="flex flex-auto justify-end items-center gap-2 md:gap-4 overflow-x-auto">
@@ -1000,6 +1006,18 @@ export default function App() {
             >
               <span className="flex items-center gap-3">
                 <Briefcase size={18} /> 岗位与行业分析
+              </span>
+              <ChevronRight size={16} className="opacity-50" />
+            </button>
+            <button
+              onClick={() => {
+                switchPage("ppt");
+                setIsDrawerOpen(false);
+              }}
+              className={`w-full flex items-center justify-between px-6 py-3 text-left ${activePage === "ppt" ? "bg-blue-50 text-blue-600 font-medium border-r-4 border-blue-600" : "text-gray-700 hover:bg-gray-50"}`}
+            >
+              <span className="flex items-center gap-3">
+                <FileText size={18} /> AI PPT 生成
               </span>
               <ChevronRight size={16} className="opacity-50" />
             </button>
@@ -1139,7 +1157,7 @@ export default function App() {
       {/* 主体内容区：移动端上下布局，PC端左右布局max-w-7xl mx-auto  */}
       <main className="w-full mx-auto py-4 md:py-6 lg:px-4 py-4">
         {/* <main className="flex-1 flex flex-col md:flex-row overflow-hidden print:overflow-visible relative"> */}
-        {/* 根据 activePage 状态切换显示简历编辑器或分析模块 */}
+        {/* 根据 activePage 状态切换显示简历编辑器、分析模块或PPT生成器 */}
         {activePage === "analysis" ? (
           // 分析模块，接收简历数据和任务状态回调函数，任务状态回调函数示例：onTaskStarted、onTaskProgress、onTaskComplete
           // 通过这些回调函数，分析模块可以通知父组件当前AI任务的状态，父组件再更新背景任务列表和UI显示
@@ -1156,6 +1174,8 @@ export default function App() {
             onStartBackgroundTask={startBackgroundTask}
             runningTasksCount={runningTasksCount}
           />
+        ) : activePage === "ppt" ? (
+          <PPTMaker resumeData={resumeData} />
         ) : (
           <div className="flex-1 flex flex-col lg:flex-row overflow-hidden print:overflow-visible relative">
             {/* 编辑器区域 */}

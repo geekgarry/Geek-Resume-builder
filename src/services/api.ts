@@ -200,6 +200,59 @@ export const apiService = {
   async deleteUser(id: string): Promise<boolean> {
     // We will just disable them instead of deleting, or we can add a delete endpoint
     return this.updateUserStatus(id, 'disabled');
+  },
+
+  // PPT 相关API
+  async getUserPPTs(): Promise<any[]> {
+    const res = await fetch(`${API_BASE}/ppts/me`, {
+      headers: getAuthHeaders()
+    });
+    if (!res.ok) return [];
+    return res.json();
+  },
+
+  async createPPT(pptData: any): Promise<any> {
+    const res = await fetch(`${API_BASE}/ppts/me`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(pptData)
+    });
+    if (!res.ok) throw new Error('Failed to create PPT');
+    return res.json();
+  },
+
+  async updatePPT(id: string, pptData: any): Promise<boolean> {
+    const res = await fetch(`${API_BASE}/ppts/me/${id}`, {
+      method: 'PUT',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(pptData)
+    });
+    return res.ok;
+  },
+
+  async deletePPT(id: string): Promise<boolean> {
+    const res = await fetch(`${API_BASE}/ppts/me/${id}`, {
+      method: 'DELETE',
+      headers: getAuthHeaders()
+    });
+    return res.ok;
+  },
+
+  // Admin PPT 管理接口
+  async getAdminPPTs(): Promise<any[]> {
+    const res = await fetch(`${API_BASE}/admin/ppts`, {
+      headers: getAuthHeaders()
+    });
+    if (!res.ok) throw new Error('Failed to get PPTs');
+    return res.json();
+  },
+
+  async getPPTById(id: string): Promise<any> {
+    const res = await fetch(`${API_BASE}/admin/ppts/${id}`, {
+      headers: getAuthHeaders()
+    });
+    if (!res.ok) throw new Error('无法获取PPT数据');
+    return res.json();
   }
 };
 

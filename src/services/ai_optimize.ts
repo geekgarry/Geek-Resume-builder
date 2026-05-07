@@ -113,7 +113,7 @@ export const aiService = {
     }
     return await response.json();
   },
-  
+
   /**
    * AI 根据简单描述一键生成完整简历结构
    */
@@ -154,6 +154,77 @@ export const aiService = {
 
     if (!response.ok) {
       throw new Error("AI 生成模板失败");
+    }
+    return await response.json();
+  },
+
+  /**
+   * AI 根据文本生成PPT幻灯片
+   */
+  async generatePPTFromText(text: string): Promise<any[]> {
+    const token = localStorage.getItem('auth_token');
+    if (!token) throw new Error("请先登录");
+
+    const response = await fetch(`${API_URL}/ai/generate-ppt-from-text`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify({ text })
+    });
+
+    if (!response.ok) {
+      throw new Error("AI 生成PPT失败");
+    }
+    return await response.json();
+  },
+
+  /**
+   * AI 根据简历数据生成PPT幻灯片
+   */
+  async generatePPTFromResume(resumeData: any, additionalPrompt?: string): Promise<any[]> {
+    const token = localStorage.getItem('auth_token');
+    if (!token) throw new Error("请先登录");
+
+    const response = await fetch(`${API_URL}/ai/generate-ppt-from-resume`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify({ resumeData, additionalPrompt: additionalPrompt || '' })
+    });
+
+    if (!response.ok) {
+      throw new Error("AI 生成PPT失败");
+    }
+    return await response.json();
+  },
+
+  /**
+   * AI 根据上传的文件生成PPT幻灯片
+   */
+  async generatePPTFromFile(file: File, additionalPrompt?: string): Promise<any[]> {
+    const token = localStorage.getItem('auth_token');
+    if (!token) throw new Error("请先登录");
+
+    const formData = new FormData();
+    formData.append('file', file);
+    if (additionalPrompt) {
+      formData.append('additionalPrompt', additionalPrompt);
+    }
+
+    const response = await fetch(`${API_URL}/upload/process-ppt`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`
+      },
+      body: formData
+    });
+
+    if (!response.ok) {
+      throw new Error("AI 生成PPT失败");
     }
     return await response.json();
   },
