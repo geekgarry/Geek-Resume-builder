@@ -19,6 +19,14 @@ export function ResumeEditor({ data, onChange, template }: EditorProps) {
   const [dragWorkOverItem, setDragWorkOverItem] = useState<number | null>(null);
   const [dragProjItem, setDragProjItem] = useState<number | null>(null);
   const [dragProjOverItem, setDragProjOverItem] = useState<number | null>(null);
+  const [dragEducationItem, setDragEducationItem] = useState<number | null>(null);
+  const [dragEducationOverItem, setDragEducationOverItem] = useState<number | null>(null);
+  const [dragAwardsItem, setDragAwardsItem] = useState<number | null>(null);
+  const [dragAwardsOverItem, setDragAwardsOverItem] = useState<number | null>(null);
+  const [dragCertItem, setDragCertItem] = useState<number | null>(null);
+  const [dragCertOverItem, setDragCertOverItem] = useState<number | null>(null);
+  const [dragPortfolioItem, setDragPortfolioItem] = useState<number | null>(null);
+  const [dragPortfolioOverItem, setDragPortfolioOverItem] = useState<number | null>(null);
 
   const updateBasics = (field: keyof ResumeData['basics'], value: string) => {
     onChange({ ...data, basics: { ...data.basics, [field]: value } });
@@ -163,6 +171,62 @@ export function ResumeEditor({ data, onChange, template }: EditorProps) {
     setDragProjOverItem(null);
   };
 
+  const handleEducationDragStart = (index: number) => setDragEducationItem(index);
+  const handleEducationDragEnter = (index: number) => setDragEducationOverItem(index);
+  const handleEducationDragEnd = () => {
+    if (dragEducationItem !== null && dragEducationOverItem !== null && dragEducationItem !== dragEducationOverItem) {
+      const newEducation = [...data.education];
+      const draggedItem = newEducation[dragEducationItem];
+      newEducation.splice(dragEducationItem, 1);
+      newEducation.splice(dragEducationOverItem, 0, draggedItem);
+      onChange({ ...data, education: newEducation });
+    }
+    setDragEducationItem(null);
+    setDragEducationOverItem(null);
+  };
+
+  const handleAwardsDragStart = (index: number) => setDragAwardsItem(index);
+  const handleAwardsDragEnter = (index: number) => setDragAwardsOverItem(index);
+  const handleAwardsDragEnd = () => {
+    if (dragAwardsItem !== null && dragAwardsOverItem !== null && dragAwardsItem !== dragAwardsOverItem) {
+      const newAwards = [...(data.awards || [])];
+      const draggedItem = newAwards[dragAwardsItem];
+      newAwards.splice(dragAwardsItem, 1);
+      newAwards.splice(dragAwardsOverItem, 0, draggedItem);
+      onChange({ ...data, awards: newAwards });
+    }
+    setDragAwardsItem(null);
+    setDragAwardsOverItem(null);
+  };
+
+  const handleCertDragStart = (index: number) => setDragCertItem(index);
+  const handleCertDragEnter = (index: number) => setDragCertOverItem(index);
+  const handleCertDragEnd = () => {
+    if (dragCertItem !== null && dragCertOverItem !== null && dragCertItem !== dragCertOverItem) {
+      const newCerts = [...(data.certifications || [])];
+      const draggedItem = newCerts[dragCertItem];
+      newCerts.splice(dragCertItem, 1);
+      newCerts.splice(dragCertOverItem, 0, draggedItem);
+      onChange({ ...data, certifications: newCerts });
+    }
+    setDragCertItem(null);
+    setDragCertOverItem(null);
+  };
+
+  const handlePortfolioDragStart = (index: number) => setDragPortfolioItem(index);
+  const handlePortfolioDragEnter = (index: number) => setDragPortfolioOverItem(index);
+  const handlePortfolioDragEnd = () => {
+    if (dragPortfolioItem !== null && dragPortfolioOverItem !== null && dragPortfolioItem !== dragPortfolioOverItem) {
+      const newPortfolio = [...(data.portfolio || [])];
+      const draggedItem = newPortfolio[dragPortfolioItem];
+      newPortfolio.splice(dragPortfolioItem, 1);
+      newPortfolio.splice(dragPortfolioOverItem, 0, draggedItem);
+      onChange({ ...data, portfolio: newPortfolio });
+    }
+    setDragPortfolioItem(null);
+    setDragPortfolioOverItem(null);
+  };
+
   const moveWorkItem = (index: number, direction: 'up' | 'down') => {
     const newWork = [...data.work];
     const targetIndex = direction === 'up' ? index - 1 : index + 1;
@@ -177,6 +241,38 @@ export function ResumeEditor({ data, onChange, template }: EditorProps) {
     if (targetIndex < 0 || targetIndex >= newProj.length) return;
     [newProj[index], newProj[targetIndex]] = [newProj[targetIndex], newProj[index]];
     onChange({ ...data, projects: newProj });
+  };
+
+  const moveEducationItem = (index: number, direction: 'up' | 'down') => {
+    const newEducation = [...data.education];
+    const targetIndex = direction === 'up' ? index - 1 : index + 1;
+    if (targetIndex < 0 || targetIndex >= newEducation.length) return;
+    [newEducation[index], newEducation[targetIndex]] = [newEducation[targetIndex], newEducation[index]];
+    onChange({ ...data, education: newEducation });
+  };
+
+  const moveAwardsItem = (index: number, direction: 'up' | 'down') => {
+    const newAwards = [...(data.awards || [])];
+    const targetIndex = direction === 'up' ? index - 1 : index + 1;
+    if (targetIndex < 0 || targetIndex >= newAwards.length) return;
+    [newAwards[index], newAwards[targetIndex]] = [newAwards[targetIndex], newAwards[index]];
+    onChange({ ...data, awards: newAwards });
+  };
+
+  const moveCertItem = (index: number, direction: 'up' | 'down') => {
+    const newCerts = [...(data.certifications || [])];
+    const targetIndex = direction === 'up' ? index - 1 : index + 1;
+    if (targetIndex < 0 || targetIndex >= newCerts.length) return;
+    [newCerts[index], newCerts[targetIndex]] = [newCerts[targetIndex], newCerts[index]];
+    onChange({ ...data, certifications: newCerts });
+  };
+
+  const movePortfolioItem = (index: number, direction: 'up' | 'down') => {
+    const newPortfolio = [...(data.portfolio || [])];
+    const targetIndex = direction === 'up' ? index - 1 : index + 1;
+    if (targetIndex < 0 || targetIndex >= newPortfolio.length) return;
+    [newPortfolio[index], newPortfolio[targetIndex]] = [newPortfolio[targetIndex], newPortfolio[index]];
+    onChange({ ...data, portfolio: newPortfolio });
   };
 
   return (
@@ -358,19 +454,56 @@ export function ResumeEditor({ data, onChange, template }: EditorProps) {
           onClick={() => toggleSection('education')}
           className="w-full flex items-center justify-between gap-2 px-4 py-3 bg-gray-50 hover:bg-gray-100 transition-colors"
         >
-          <span className="text-base md:text-lg font-bold">教育经历</span>
+          <span className="text-base md:text-lg font-bold flex items-center flex-wrap">教育经历 <span className="text-[10px] md:text-xs font-normal text-gray-400 ml-2">(支持拖拽排序)</span></span>
           {isSectionExpanded('education') ? <ChevronDown size={20} /> : <ChevronRight size={20} />}
         </button>
         {isSectionExpanded('education') && (
           <div className="p-4 bg-white">
             <div className="flex justify-between items-center border-b pb-2 mb-4">
-              <h2 className="text-base md:text-lg font-bold">教育经历</h2>
-              <button onClick={() => onChange({ ...data, education: [...data.education, { id: Date.now().toString(), school: '', degree: '', year: '' }] })} className="text-blue-600 text-xs md:text-sm flex items-center gap-1"><Plus size={16}/> 添加</button>
+              {/* <h2 className="text-base md:text-lg font-bold flex items-center flex-wrap">教育经历 <span className="text-[10px] md:text-xs font-normal text-gray-400 ml-2">(支持拖拽排序)</span></h2> */}
+              <button onClick={() => onChange({ ...data, education: [...data.education, { id: Date.now().toString(), school: '', degree: '', year: '', isHidden: false }] })} className="text-blue-600 text-xs md:text-sm flex items-center gap-1"><Plus size={16}/> 添加</button>
             </div>
             {data.education.map((edu, index) => (
-              <div key={edu.id} className="mb-4 p-3 md:p-4 border rounded relative bg-gray-50">
-                <button title="删除教育经历" onClick={() => onChange({ ...data, education: data.education.filter(e => e.id !== edu.id) })} className="absolute top-2 right-2 text-red-500 p-1"><Trash2 size={16}/></button>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-4 mt-2 sm:mt-0">
+              <div
+                key={edu.id}
+                draggable
+                onTouchStart={() => handleEducationDragStart(index)}
+                onDragStart={() => handleEducationDragStart(index)}
+                onDragEnter={() => handleEducationDragEnter(index)}
+                onDragEnd={handleEducationDragEnd}
+                onDragOver={(e) => e.preventDefault()}
+                className={`mb-4 p-3 md:p-4 border rounded relative transition-all ${edu.isHidden ? 'bg-gray-100 opacity-60' : 'bg-gray-50'} ${dragEducationOverItem === index ? 'border-blue-500 border-dashed' : 'border-gray-200'}`}
+              >
+                <div className="absolute top-2 left-1 md:left-2 cursor-grab text-gray-400 hover:text-gray-600 p-1">
+                  <GripVertical size={18} />
+                </div>
+                <div className="absolute top-2 right-1 md:right-2 flex gap-1 md:gap-2">
+                  <button
+                    onClick={() => moveEducationItem(index, 'up')}
+                    className="text-gray-500 hover:text-blue-600 p-1"
+                    title="上移"
+                  >
+                    <ArrowUp size={16} />
+                  </button>
+                  <button
+                    onClick={() => moveEducationItem(index, 'down')}
+                    className="text-gray-500 hover:text-blue-600 p-1"
+                    title="下移"
+                  >
+                    <ArrowDown size={16} />
+                  </button>
+                  <button
+                    onClick={() => {
+                      const newEducation = [...data.education]; newEducation[index].isHidden = !edu.isHidden; onChange({ ...data, education: newEducation });
+                    }}
+                    className="text-gray-500 hover:text-blue-600 p-1"
+                    title={edu.isHidden ? '显示此教育经历' : '隐藏此教育经历'}
+                  >
+                    {edu.isHidden ? <EyeOff size={16} /> : <Eye size={16} />}
+                  </button>
+                  <button title="删除教育经历" onClick={() => onChange({ ...data, education: data.education.filter(e => e.id !== edu.id) })} className="text-red-500 hover:text-red-700 p-1"><Trash2 size={16}/></button>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-4 pl-6 md:pl-8 mt-6 sm:mt-2">
                   <input placeholder="学校名称" value={edu.school} onChange={e => {
                     const newEdu = [...data.education]; newEdu[index].school = e.target.value; onChange({ ...data, education: newEdu });
                   }} className="border rounded p-2 text-sm" />
@@ -400,7 +533,7 @@ export function ResumeEditor({ data, onChange, template }: EditorProps) {
         {isSectionExpanded('work') && (
           <div className="p-4 bg-white">
             <div className="flex justify-between items-center border-b pb-2 mb-4">
-              <h2 className="text-base md:text-lg font-bold flex items-center flex-wrap">工作经历 <span className="text-[10px] md:text-xs font-normal text-gray-400 ml-2">(支持拖拽排序)</span></h2>
+              {/* <h2 className="text-base md:text-lg font-bold flex items-center flex-wrap">工作经历 <span className="text-[10px] md:text-xs font-normal text-gray-400 ml-2">(支持拖拽排序)</span></h2> */}
               <button onClick={() => onChange({ ...data, work: [...data.work, { id: Date.now().toString(), company: '', position: '', duration: '', description: '', isHidden: false }] })} className="text-blue-600 text-xs md:text-sm flex items-center gap-1 shrink-0"><Plus size={16}/> 添加</button>
             </div>
             {data.work.map((w, index) => (
@@ -441,7 +574,7 @@ export function ResumeEditor({ data, onChange, template }: EditorProps) {
                   >
                     {w.isHidden ? <EyeOff size={16} /> : <Eye size={16} />}
                   </button>
-                  <button onClick={() => onChange({ ...data, work: data.work.filter(e => e.id !== w.id) })} className="text-red-500 hover:text-red-700 p-1"><Trash2 size={16}/></button>
+                  <button title="删除工作经历" onClick={() => onChange({ ...data, work: data.work.filter(e => e.id !== w.id) })} className="text-red-500 hover:text-red-700 p-1"><Trash2 size={16}/></button>
                 </div>
                 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-4 pl-6 md:pl-8 mt-6 sm:mt-2">
@@ -488,7 +621,7 @@ export function ResumeEditor({ data, onChange, template }: EditorProps) {
         {isSectionExpanded('projects') && (
           <div className="p-4 bg-white">
             <div className="flex justify-between items-center border-b pb-2 mb-4">
-              <h2 className="text-base md:text-lg font-bold flex items-center flex-wrap">项目经验 <span className="text-[10px] md:text-xs font-normal text-gray-400 ml-2">(支持拖拽排序)</span></h2>
+              {/* <h2 className="text-base md:text-lg font-bold flex items-center flex-wrap">项目经验 <span className="text-[10px] md:text-xs font-normal text-gray-400 ml-2">(支持拖拽排序)</span></h2> */}
               <button onClick={() => onChange({ ...data, projects: [...data.projects, { id: Date.now().toString(), name: '', role: '', technologies: '', duration: '', description: '', isHidden: false }] })} className="text-blue-600 text-xs md:text-sm flex items-center gap-1 shrink-0"><Plus size={16}/> 添加</button>
             </div>
             {data.projects.map((p, index) => (
@@ -529,7 +662,7 @@ export function ResumeEditor({ data, onChange, template }: EditorProps) {
                   >
                     {p.isHidden ? <EyeOff size={16} /> : <Eye size={16} />}
                   </button>
-                  <button onClick={() => onChange({ ...data, projects: data.projects.filter(e => e.id !== p.id) })} className="text-red-500 hover:text-red-700 p-1"><Trash2 size={16}/></button>
+                  <button title="删除项目" onClick={() => onChange({ ...data, projects: data.projects.filter(e => e.id !== p.id) })} className="text-red-500 hover:text-red-700 p-1"><Trash2 size={16}/></button>
                 </div>
                 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-4 pl-6 md:pl-8 mt-6 sm:mt-2">
@@ -573,24 +706,50 @@ export function ResumeEditor({ data, onChange, template }: EditorProps) {
           onClick={() => toggleSection('awards')}
           className="w-full flex items-center justify-between gap-2 px-4 py-3 bg-gray-50 hover:bg-gray-100 transition-colors"
         >
-          <span className="text-base md:text-lg font-bold">获奖情况</span>
+          <span className="text-base md:text-lg font-bold flex items-center flex-wrap">获奖情况 <span className="text-[10px] md:text-xs font-normal text-gray-400 ml-2">(支持拖拽排序)</span></span>
           {isSectionExpanded('awards') ? <ChevronDown size={20} /> : <ChevronRight size={20} />}
         </button>
         {isSectionExpanded('awards') && (
           <div className="p-4 bg-white">
             <div className="flex justify-between items-center border-b pb-2 mb-4">
-              <h2 className="text-base md:text-lg font-bold">获奖情况</h2>
+              {/* <h2 className="text-base md:text-lg font-bold flex items-center flex-wrap">获奖情况 <span className="text-[10px] md:text-xs font-normal text-gray-400 ml-2">(支持拖拽排序)</span></h2> */}
               <button onClick={() => onChange({ ...data, awards: [...(data.awards || []), { id: Date.now().toString(), name: '', date: '', description: '', isHidden: false }] })} className="text-blue-600 text-xs md:text-sm flex items-center gap-1"><Plus size={16}/> 添加</button>
             </div>
             {(data.awards || []).map((award, index) => (
-              <div key={award.id} className={`mb-4 p-3 md:p-4 border rounded relative transition-all ${award.isHidden ? 'bg-gray-100 opacity-60' : 'bg-gray-50'}`}>
+              <div
+                key={award.id}
+                draggable
+                onTouchStart={() => handleAwardsDragStart(index)}
+                onDragStart={() => handleAwardsDragStart(index)}
+                onDragEnter={() => handleAwardsDragEnter(index)}
+                onDragEnd={handleAwardsDragEnd}
+                onDragOver={(e) => e.preventDefault()}
+                className={`mb-4 p-3 md:p-4 border rounded relative transition-all ${award.isHidden ? 'bg-gray-100 opacity-60' : 'bg-gray-50'} ${dragAwardsOverItem === index ? 'border-blue-500 border-dashed' : 'border-gray-200'}`}
+              >
+                <div className="absolute top-2 left-1 md:left-2 cursor-grab text-gray-400 hover:text-gray-600 p-1">
+                  <GripVertical size={18} />
+                </div>
                 <div className="absolute top-2 right-1 md:right-2 flex gap-1 md:gap-2">
+                  <button
+                    onClick={() => moveAwardsItem(index, 'up')}
+                    className="text-gray-500 hover:text-blue-600 p-1"
+                    title="上移"
+                  >
+                    <ArrowUp size={16} />
+                  </button>
+                  <button
+                    onClick={() => moveAwardsItem(index, 'down')}
+                    className="text-gray-500 hover:text-blue-600 p-1"
+                    title="下移"
+                  >
+                    <ArrowDown size={16} />
+                  </button>
                   <button onClick={() => { const newAwards = [...(data.awards || [])]; newAwards[index].isHidden = !award.isHidden; onChange({ ...data, awards: newAwards }); }} className="text-gray-500 hover:text-blue-600 p-1">
                     {award.isHidden ? <EyeOff size={16} /> : <Eye size={16} />}
                   </button>
                   <button title="删除获奖情况" onClick={() => onChange({ ...data, awards: (data.awards || []).filter(e => e.id !== award.id) })} className="text-red-500 hover:text-red-700 p-1"><Trash2 size={16}/></button>
                 </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-4 mt-6 sm:mt-2">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-4 pl-6 md:pl-8 mt-6 sm:mt-2">
                   <input placeholder="奖项名称" value={award.name} onChange={e => { const newAwards = [...(data.awards || [])]; newAwards[index].name = e.target.value; onChange({ ...data, awards: newAwards }); }} className="border rounded p-2 bg-white text-sm" />
                   <input placeholder="获奖时间 (如 2023.10)" value={award.date} onChange={e => { const newAwards = [...(data.awards || [])]; newAwards[index].date = e.target.value; onChange({ ...data, awards: newAwards }); }} className="border rounded p-2 bg-white text-sm" />
                   <input placeholder="奖项描述/级别 (选填)" value={award.description} onChange={e => { const newAwards = [...(data.awards || [])]; newAwards[index].description = e.target.value; onChange({ ...data, awards: newAwards }); }} className="border rounded p-2 bg-white text-sm col-span-1 sm:col-span-2" />
@@ -610,24 +769,50 @@ export function ResumeEditor({ data, onChange, template }: EditorProps) {
           onClick={() => toggleSection('certifications')}
           className="w-full flex items-center justify-between gap-2 px-4 py-3 bg-gray-50 hover:bg-gray-100 transition-colors"
         >
-          <span className="text-base md:text-lg font-bold">资格证书</span>
+          <span className="text-base md:text-lg font-bold flex items-center flex-wrap">资格证书 <span className="text-[10px] md:text-xs font-normal text-gray-400 ml-2">(支持拖拽排序)</span></span>
           {isSectionExpanded('certifications') ? <ChevronDown size={20} /> : <ChevronRight size={20} />}
         </button>
         {isSectionExpanded('certifications') && (
           <div className="p-4 bg-white">
             <div className="flex justify-between items-center border-b pb-2 mb-4">
-              <h2 className="text-base md:text-lg font-bold">资格证书</h2>
-              <button onClick={() => onChange({ ...data, certifications: [...(data.certifications || []), { id: Date.now().toString(), name: '', issuer: '', date: '', isHidden: false }] })} className="text-blue-600 text-xs md:text-sm flex items-center gap-1"><Plus size={16}/> 添加</button>
+              {/* <h2 className="text-base md:text-lg font-bold flex items-center flex-wrap">资格证书 <span className="text-[10px] md:text-xs font-normal text-gray-400 ml-2">(支持拖拽排序)</span></h2> */}
+              <button onClick={() => onChange({ ...data, certifications: [...(data.certifications || []), { id: Date.now().toString(), name: '', issuer: '', date: '', description: '', isHidden: false }] })} className="text-blue-600 text-xs md:text-sm flex items-center gap-1"><Plus size={16}/> 添加</button>
             </div>
             {(data.certifications || []).map((cert, index) => (
-              <div key={cert.id} className={`mb-4 p-3 md:p-4 border rounded relative transition-all ${cert.isHidden ? 'bg-gray-100 opacity-60' : 'bg-gray-50'}`}>
+              <div
+                key={cert.id}
+                draggable
+                onTouchStart={() => handleCertDragStart(index)}
+                onDragStart={() => handleCertDragStart(index)}
+                onDragEnter={() => handleCertDragEnter(index)}
+                onDragEnd={handleCertDragEnd}
+                onDragOver={(e) => e.preventDefault()}
+                className={`mb-4 p-3 md:p-4 border rounded relative transition-all ${cert.isHidden ? 'bg-gray-100 opacity-60' : 'bg-gray-50'} ${dragCertOverItem === index ? 'border-blue-500 border-dashed' : 'border-gray-200'}`}
+              >
+                <div className="absolute top-2 left-1 md:left-2 cursor-grab text-gray-400 hover:text-gray-600 p-1">
+                  <GripVertical size={18} />
+                </div>
                 <div className="absolute top-2 right-1 md:right-2 flex gap-1 md:gap-2">
+                  <button
+                    onClick={() => moveCertItem(index, 'up')}
+                    className="text-gray-500 hover:text-blue-600 p-1"
+                    title="上移"
+                  >
+                    <ArrowUp size={16} />
+                  </button>
+                  <button
+                    onClick={() => moveCertItem(index, 'down')}
+                    className="text-gray-500 hover:text-blue-600 p-1"
+                    title="下移"
+                  >
+                    <ArrowDown size={16} />
+                  </button>
                   <button onClick={() => { const newCerts = [...(data.certifications || [])]; newCerts[index].isHidden = !cert.isHidden; onChange({ ...data, certifications: newCerts }); }} className="text-gray-500 hover:text-blue-600 p-1">
                     {cert.isHidden ? <EyeOff size={16} /> : <Eye size={16} />}
                   </button>
                   <button title="删除证书" onClick={() => onChange({ ...data, certifications: (data.certifications || []).filter(e => e.id !== cert.id) })} className="text-red-500 hover:text-red-700 p-1"><Trash2 size={16}/></button>
                 </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-4 mt-6 sm:mt-2">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-4 pl-6 md:pl-8 mt-6 sm:mt-2">
                   <input placeholder="证书名称" value={cert.name} onChange={e => { const newCerts = [...(data.certifications || [])]; newCerts[index].name = e.target.value; onChange({ ...data, certifications: newCerts }); }} className="border rounded p-2 bg-white text-sm" />
                   <input placeholder="颁发机构" value={cert.issuer} onChange={e => { const newCerts = [...(data.certifications || [])]; newCerts[index].issuer = e.target.value; onChange({ ...data, certifications: newCerts }); }} className="border rounded p-2 bg-white text-sm" />
                   <input placeholder="获得时间 (如 2022.05)" value={cert.date} onChange={e => { const newCerts = [...(data.certifications || [])]; newCerts[index].date = e.target.value; onChange({ ...data, certifications: newCerts }); }} className="border rounded p-2 bg-white text-sm col-span-1 sm:col-span-2" />
@@ -646,24 +831,50 @@ export function ResumeEditor({ data, onChange, template }: EditorProps) {
           onClick={() => toggleSection('portfolio')}
           className="w-full flex items-center justify-between gap-2 px-4 py-3 bg-gray-50 hover:bg-gray-100 transition-colors"
         >
-          <span className="text-base md:text-lg font-bold">作品集</span>
+          <span className="text-base md:text-lg font-bold flex items-center flex-wrap">作品集 <span className="text-[10px] md:text-xs font-normal text-gray-400 ml-2">(支持拖拽排序)</span></span>
           {isSectionExpanded('portfolio') ? <ChevronDown size={20} /> : <ChevronRight size={20} />}
         </button>
         {isSectionExpanded('portfolio') && (
           <div className="p-4 bg-white">
             <div className="flex justify-between items-center border-b pb-2 mb-4">
-              <h2 className="text-base md:text-lg font-bold">作品集</h2>
+              {/* <h2 className="text-base md:text-lg font-bold flex items-center flex-wrap">作品集 <span className="text-[10px] md:text-xs font-normal text-gray-400 ml-2">(支持拖拽排序)</span></h2> */}
               <button onClick={() => onChange({ ...data, portfolio: [...(data.portfolio || []), { id: Date.now().toString(), title: '', link: '', description: '', isHidden: false }] })} className="text-blue-600 text-xs md:text-sm flex items-center gap-1"><Plus size={16}/> 添加</button>
             </div>
             {(data.portfolio || []).map((item, index) => (
-              <div key={item.id} className={`mb-4 p-3 md:p-4 border rounded relative transition-all ${item.isHidden ? 'bg-gray-100 opacity-60' : 'bg-gray-50'}`}>
+              <div
+                key={item.id}
+                draggable
+                onTouchStart={() => handlePortfolioDragStart(index)}
+                onDragStart={() => handlePortfolioDragStart(index)}
+                onDragEnter={() => handlePortfolioDragEnter(index)}
+                onDragEnd={handlePortfolioDragEnd}
+                onDragOver={(e) => e.preventDefault()}
+                className={`mb-4 p-3 md:p-4 border rounded relative transition-all ${item.isHidden ? 'bg-gray-100 opacity-60' : 'bg-gray-50'} ${dragPortfolioOverItem === index ? 'border-blue-500 border-dashed' : 'border-gray-200'}`}
+              >
+                <div className="absolute top-2 left-1 md:left-2 cursor-grab text-gray-400 hover:text-gray-600 p-1">
+                  <GripVertical size={18} />
+                </div>
                 <div className="absolute top-2 right-1 md:right-2 flex gap-1 md:gap-2">
+                  <button
+                    onClick={() => movePortfolioItem(index, 'up')}
+                    className="text-gray-500 hover:text-blue-600 p-1"
+                    title="上移"
+                  >
+                    <ArrowUp size={16} />
+                  </button>
+                  <button
+                    onClick={() => movePortfolioItem(index, 'down')}
+                    className="text-gray-500 hover:text-blue-600 p-1"
+                    title="下移"
+                  >
+                    <ArrowDown size={16} />
+                  </button>
                   <button onClick={() => { const newPortfolio = [...(data.portfolio || [])]; newPortfolio[index].isHidden = !item.isHidden; onChange({ ...data, portfolio: newPortfolio }); }} className="text-gray-500 hover:text-blue-600 p-1">
                     {item.isHidden ? <EyeOff size={16} /> : <Eye size={16} />}
                   </button>
                   <button title="删除作品" onClick={() => onChange({ ...data, portfolio: (data.portfolio || []).filter(e => e.id !== item.id) })} className="text-red-500 hover:text-red-700 p-1"><Trash2 size={16}/></button>
                 </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-4 mt-6 sm:mt-2">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-4 pl-6 md:pl-8 mt-6 sm:mt-2">
                   <input placeholder="作品名称" value={item.title} onChange={e => { const newPortfolio = [...(data.portfolio || [])]; newPortfolio[index].title = e.target.value; onChange({ ...data, portfolio: newPortfolio }); }} className="border rounded p-2 bg-white text-sm" />
                   <input placeholder="作品链接 (URL)" value={item.link} onChange={e => { const newPortfolio = [...(data.portfolio || [])]; newPortfolio[index].link = e.target.value; onChange({ ...data, portfolio: newPortfolio }); }} className="border rounded p-2 bg-white text-sm" />
                   <input placeholder="作品简述 (选填)" value={item.description} onChange={e => { const newPortfolio = [...(data.portfolio || [])]; newPortfolio[index].description = e.target.value; onChange({ ...data, portfolio: newPortfolio }); }} className="border rounded p-2 bg-white text-sm col-span-1 sm:col-span-2" />

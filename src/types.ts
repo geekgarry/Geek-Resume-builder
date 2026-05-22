@@ -17,6 +17,7 @@ export interface ResumeData {
     school: string;
     degree: string;
     year: string;
+    isHidden?: boolean;
   }>;
   work: Array<{
     id: string;
@@ -47,6 +48,7 @@ export interface ResumeData {
   certifications?: Array<{
     id: string;
     name: string;
+    issuer: string;
     date: string;
     description: string;
     isHidden?: boolean;
